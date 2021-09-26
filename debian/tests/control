@@ -1,0 +1,3 @@
+Tests: run.sh
+Depends: patatt
+Restrictions: allow-stderr

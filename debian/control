@@ -10,7 +10,7 @@ Standards-Version: 4.6.0
 Homepage: https://git.kernel.org/pub/scm/utils/patatt/patatt.git/
 Vcs-Browser: https://salsa.debian.org/debian/patatt
 Vcs-Git: https://salsa.debian.org/debian/patatt.git
-#Testsuite: autopkgtest-pkg-python
+Testsuite: autopkgtest-pkg-python
 Rules-Requires-Root: no
 
 Package: patatt
@@ -32,7 +32,9 @@ Architecture: all
 Section: python
 Depends: ${python3:Depends},
 	 ${misc:Depends},
-	 python3-nacl
+	 python3-nacl,
+	 git,
+	 gnupg
 Description: library for cryptographic attestation of patches
  This module provides capabilities for cryptographic attestation of
  patches for projects that use a patch-based workflow over email.
