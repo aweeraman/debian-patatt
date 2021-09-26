@@ -1,0 +1,26 @@
+Description: Man page tweaks
+Author: Anuradha Weeraman <anuradha@debian.org>
+Forwarded: yes
+
+--- a/man/patatt.5
++++ b/man/patatt.5
+@@ -1,8 +1,8 @@
+ .\" Man page generated from reStructuredText.
+ .
+-.TH PATATT 5 "2021-09-10" "0.4.7" ""
++.TH PATATT 5 "2021-09-10" "0.4.8" "Linux Programmer's Manual"
+ .SH NAME
+-PATATT \- DKIM-like cryptographic patch attestation
++patatt \- DKIM-like cryptographic patch attestation
+ .
+ .nr rst2man-indent-level 0
+ .
+@@ -32,7 +32,7 @@ level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+ ..
+ .SH SYNOPSIS
+ .sp
+-patatt {sign,validate,genkey,install\-hook} [options]
++patatt {sign|validate|genkey|install\-hook} [options]
+ .SH DESCRIPTION
+ .sp
+ This tools allows cryptographically signing patches sent via email
