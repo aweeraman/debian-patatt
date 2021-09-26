@@ -31,8 +31,8 @@ Package: python3-patatt
 Architecture: all
 Section: python
 Depends: ${python3:Depends},
-	 ${misc:Depends}
-Suggests: python-patatt-doc
+	 ${misc:Depends},
+	 python3-nacl
 Description: library for cryptographic attestation of patches
  This module provides capabilities for cryptographic attestation of
  patches for projects that use a patch-based workflow over email.
