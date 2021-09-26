@@ -1,0 +1,8 @@
+{
+  "Name": "patatt",
+  "Archive": "Git",
+  "Bug-Database": "https://bugzilla.kernel.org",
+  "Bug-Submit": "https://bugzilla.kernel.org/enter_bug.cgi",
+  "Repository": "https://git.kernel.org/pub/scm/utils/patatt/patatt.git",
+  "Repository-Browse": "https://git.kernel.org/pub/scm/utils/patatt/patatt.git"
+}

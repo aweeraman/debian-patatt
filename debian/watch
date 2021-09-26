@@ -1,0 +1,4 @@
+version=4
+opts="mode=git, pgpmode=gittag" \
+   https://git.kernel.org/pub/scm/utils/patatt/patatt.git \
+   refs/tags/v([\d\.]+)

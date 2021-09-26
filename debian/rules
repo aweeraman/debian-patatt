@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+export PYBUILD_NAME=patatt
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_install:
+	dh_install
+	# Move executable and man page to patatt binary package
+	mkdir -p debian/patatt/usr/share/patatt/hooks
+	mv debian/python3-patatt/usr/share/man debian/patatt/usr/share/
+	mv debian/python3-patatt/usr/bin debian/patatt/usr/
+	cp sendemail-validate-hook debian/patatt/usr/share/patatt/hooks/
