@@ -1,5 +1,9 @@
 #!/bin/sh
 
+echo "Copying keys needed for tests..."
+mkdir -p $HOME/.local/share/patatt/public/ || true
+cp -r .keys/* $HOME/.local/share/patatt/public/
+
 echo "Running positive test..."
 patatt validate samples/ed25519-signed.txt
 
