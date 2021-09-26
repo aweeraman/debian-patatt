@@ -11,4 +11,3 @@ override_dh_install:
 	mkdir -p debian/patatt/usr/share/patatt/hooks
 	mv debian/python3-patatt/usr/share/man debian/patatt/usr/share/
 	mv debian/python3-patatt/usr/bin debian/patatt/usr/
-	cp sendemail-validate-hook debian/patatt/usr/share/patatt/hooks/
