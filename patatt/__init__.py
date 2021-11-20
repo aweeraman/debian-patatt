@@ -47,7 +47,7 @@ OPT_HDRS = [b'message-id']
 KEYCACHE = dict()
 
 # My version
-__VERSION__ = '0.4.8'
+__VERSION__ = '0.4.9'
 MAX_SUPPORTED_FORMAT_VERSION = 1
 
 
@@ -811,14 +811,14 @@ def get_public_key(source: str, keytype: str, identity: str, selector: str) -> T
 
 def _load_messages(cmdargs) -> dict:
     import sys
-    if not sys.stdin.isatty():
-        messages = {'-': sys.stdin.buffer.read()}
-    elif len(cmdargs.msgfile):
+    if len(cmdargs.msgfile):
         # Load all message from the files passed to make sure they all parse correctly
         messages = dict()
         for msgfile in cmdargs.msgfile:
             with open(msgfile, 'rb') as fh:
                 messages[msgfile] = fh.read()
+    elif not sys.stdin.isatty():
+        messages = {'-': sys.stdin.buffer.read()}
     else:
         logger.critical('E: Pipe a message to sign or pass filenames with individual messages')
         raise RuntimeError('Nothing to do')
@@ -1122,6 +1122,7 @@ def cmd_install_hook(cmdargs, config: dict):  # noqa
     if os.path.exists(hookfile):
         logger.critical('Hook already exists: %s', hookfile)
         sys.exit(1)
+    Path(os.path.join(gitrepo, '.git', 'hooks')).mkdir(parents=True, exist_ok=True)
     with open(hookfile, 'w') as fh:
         fh.write('#!/bin/sh\n')
         fh.write('# installed by patatt install-hook\n')
