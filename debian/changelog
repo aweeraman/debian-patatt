@@ -1,3 +1,9 @@
+patatt (0.4.9-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Anuradha Weeraman <anuradha@debian.org>  Sat, 20 Nov 2021 11:04:08 +0530
+
 patatt (0.4.8-1) unstable; urgency=medium
 
   * Initial release (Closes: #994760)
