@@ -1,6 +1,7 @@
 patatt (0.5.0-1) unstable; urgency=medium
 
   * New upstream release.
+  * Bumped up standards version.
 
  -- Anuradha Weeraman <anuradha@debian.org>  Sat, 30 Jul 2022 13:01:49 +0530
 
