@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2021 by The Linux Foundation
+# Copyright (C) 2021-2022 by The Linux Foundation
 # SPDX-License-Identifier: MIT-0
 #
 __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
@@ -28,7 +28,8 @@ from io import BytesIO
 logger = logging.getLogger(__name__)
 
 # Overridable via [patatt] parameters
-GPGBIN = 'gpg'
+GPGBIN = None
+SSHKBIN = None
 
 # Hardcoded defaults
 DEVSIG_HDR = b'X-Developer-Signature'
@@ -36,6 +37,7 @@ DEVKEY_HDR = b'X-Developer-Key'
 
 # Result and severity levels
 RES_VALID = 0
+RES_NOSIG = 4
 RES_NOKEY = 8
 RES_ERROR = 16
 RES_BADSIG = 32
@@ -47,7 +49,7 @@ OPT_HDRS = [b'message-id']
 KEYCACHE = dict()
 
 # My version
-__VERSION__ = '0.4.9'
+__VERSION__ = '0.5.0'
 MAX_SUPPORTED_FORMAT_VERSION = 1
 
 
@@ -204,6 +206,13 @@ class DevsigHeader:
         pts = self.hval.rsplit(b'b=', 1)
         dshdr = pts[0] + b'b='
         bdata = re.sub(rb'\s*', b'', pts[1])
+        # Calculate our own digest
+        hashed = hashlib.sha256()
+        # Add in our _headervals first (they aready have CRLF endings)
+        hashed.update(b''.join(self._headervals))
+        # and the devsig header now, without the trailing CRLF
+        hashed.update(DEVSIG_HDR.lower() + b':' + dshdr)
+        vdigest = hashed.digest()
         algo = self.get_field('a', decode=True)
         if algo.startswith('ed25519'):
             sdigest = DevsigHeader._validate_ed25519(bdata, keyinfo)
@@ -211,24 +220,24 @@ class DevsigHeader:
             signkey = keyinfo
             if not signtime:
                 raise ValidationError('t= field is required for ed25519 sigs')
+            if sdigest != vdigest:
+                raise ValidationError('Header validation failed')
+        elif algo.startswith('openssh'):
+            DevsigHeader._validate_openssh(bdata, vdigest, keyinfo)
+            signtime = self.get_field('t', decode=True)
+            signkey = keyinfo
+            if not signtime:
+                raise ValidationError('t= field is required for openssh sigs')
         elif algo.startswith('openpgp'):
             sdigest, (good, valid, trusted, signkey, signtime) = DevsigHeader._validate_openpgp(bdata, keyinfo)
+            if sdigest != vdigest:
+                raise ValidationError('Header validation failed')
         else:
             raise ValidationError('Unknown algorithm: %s', algo)
 
-        # Now we calculate our own digest
-        hashed = hashlib.sha256()
-        # Add in our _headervals first (they aready have CRLF endings)
-        hashed.update(b''.join(self._headervals))
-        # and the devsig header now, without the trailing CRLF
-        hashed.update(DEVSIG_HDR.lower() + b':' + dshdr)
-        vdigest = hashed.digest()
-        if sdigest != vdigest:
-            raise ValidationError('Header validation failed')
-
         return signkey, signtime
 
-    def sign(self, keyinfo: bytes, split: bool = True) -> Tuple[bytes, bytes]:
+    def sign(self, keyinfo: Union[str, bytes], split: bool = True) -> Tuple[bytes, bytes]:
         self.sanity_check()
         self.set_field('bh', self._body_hash)
         algo = self.get_field('a', decode=True)
@@ -251,6 +260,8 @@ class DevsigHeader:
             bval, pkinfo = DevsigHeader._sign_ed25519(digest, keyinfo)
         elif algo.startswith('openpgp'):
             bval, pkinfo = DevsigHeader._sign_openpgp(digest, keyinfo)
+        elif algo.startswith('openssh'):
+            bval, pkinfo = DevsigHeader._sign_openssh(digest, keyinfo)
         else:
             raise RuntimeError('Unknown a=%s' % algo)
 
@@ -295,7 +306,57 @@ class DevsigHeader:
             raise ValidationError('Failed to validate signature')
 
     @staticmethod
-    def _sign_openpgp(payload: bytes, keyid: bytes) -> Tuple[bytes, bytes]:
+    def _sign_openssh(payload: bytes, keyfile: str) -> Tuple[bytes, bytes]:
+        global KEYCACHE
+        keypath = os.path.expanduser(os.path.expandvars(keyfile))
+        if not os.access(keypath, os.R_OK):
+            raise SigningError('Unable to read openssh public key %s' % keypath)
+        sshkargs = ['-Y', 'sign', '-n', 'patatt', '-f', keypath]
+        ecode, out, err = sshk_run_command(sshkargs, payload)
+        if ecode > 0:
+            raise SigningError('Running ssh-keygen failed', errors=err.decode().split('\n'))
+        # Remove the header/footer
+        sigdata = b''
+        for bline in out.split(b'\n'):
+            if bline.startswith(b'----'):
+                continue
+            sigdata += bline
+        if keypath not in KEYCACHE:
+            # Now get the fingerprint of this keyid
+            sshkargs = ['-l', '-f', keypath]
+            ecode, out, err = sshk_run_command(sshkargs, payload)
+            if ecode > 0:
+                raise SigningError('Running ssh-keygen failed', errors=err.decode().split('\n'))
+            chunks = out.split()
+            keyfp = chunks[1]
+            KEYCACHE[keypath] = keyfp
+        else:
+            keyfp = KEYCACHE[keypath]
+
+        return sigdata, keyfp
+
+    @staticmethod
+    def _validate_openssh(sigdata: bytes, payload: bytes, keydata: bytes) -> None:
+        with tempfile.TemporaryDirectory(suffix='.patch-attest-poc') as td:
+            # Start by making a signers file
+            fpath = os.path.join(td, 'signers')
+            spath = os.path.join(td, 'sigdata')
+            with open(fpath, 'wb') as fh:
+                chunks = keydata.split()
+                bcont = b'patatter@local namespaces="patatt" ' + chunks[0] + b' ' + chunks[1] + b'\n'
+                logger.debug('allowed-signers: %s', bcont)
+                fh.write(bcont)
+            with open(spath, 'wb') as fh:
+                bcont = b'-----BEGIN SSH SIGNATURE-----\n' + sigdata + b'\n-----END SSH SIGNATURE-----\n'
+                logger.debug('sigdata: %s', bcont)
+                fh.write(bcont)
+            sshkargs = ['-Y', 'verify', '-n', 'patatt', '-I', 'patatter@local', '-f', fpath, '-s', spath]
+            ecode, out, err = sshk_run_command(sshkargs, payload)
+            if ecode > 0:
+                raise ValidationError('Failed to validate openssh signature', errors=err.decode().split('\n'))
+
+    @staticmethod
+    def _sign_openpgp(payload: bytes, keyid: str) -> Tuple[bytes, bytes]:
         global KEYCACHE
         gpgargs = ['-s', '-u', keyid]
         ecode, out, err = gpg_run_command(gpgargs, payload)
@@ -370,6 +431,7 @@ class DevsigHeader:
         signtime = ''
         signkey = ''
 
+        logger.debug('GNUPG status:\n\t%s', status.decode().strip().replace('\n', '\n\t'))
         gs_matches = re.search(rb'^\[GNUPG:] GOODSIG ([0-9A-F]+)\s+(.*)$', status, flags=re.M)
         if gs_matches:
             good = True
@@ -487,17 +549,18 @@ class PatattMessage:
         ds.set_headers(self.canon_headers, mode='sign')
         ds.set_body(self.canon_body)
         ds.set_field('l', str(len(self.canon_body)))
-        if identity and identity != self.canon_identity:
-            ds.set_field('i', identity)
+        if not identity:
+            identity = self.canon_identity
+        ds.set_field('i', identity)
         if selector:
             ds.set_field('s', selector)
 
-        if algo not in ('ed25519', 'openpgp'):
+        if algo not in ('ed25519', 'openpgp', 'openssh'):
             raise SigningError('Unsupported algorithm: %s' % algo)
 
         ds.set_field('a', '%s-sha256' % algo)
-        if algo == 'ed25519':
-            # Set signing time for ed25519 sigs
+        if algo in ('ed25519', 'openssh'):
+            # Set signing time for non-pgp sigs
             ds.set_field('t', str(int(time.time())))
         hv, pkinfo = ds.sign(keyinfo)
 
@@ -510,6 +573,8 @@ class PatattMessage:
             b'a=%s' % algo.encode(),
         ]
         if algo == 'openpgp':
+            idata.append(b'fpr=%s' % pkinfo)
+        elif algo == 'openssh':
             idata.append(b'fpr=%s' % pkinfo)
         else:
             idata.append(b'pk=%s' % pkinfo)
@@ -701,7 +766,14 @@ def get_config_from_git(regexp: str, section: Optional[str] = None, defaults: Op
 
 
 def gpg_run_command(cmdargs: list, stdin: bytes = None) -> Tuple[int, bytes, bytes]:
+    set_bin_paths(None)
     cmdargs = [GPGBIN, '--batch', '--no-auto-key-retrieve', '--no-auto-check-trustdb'] + cmdargs
+    return _run_command(cmdargs, stdin)
+
+
+def sshk_run_command(cmdargs: list, stdin: bytes = None) -> Tuple[int, bytes, bytes]:
+    set_bin_paths(None)
+    cmdargs = [SSHKBIN] + cmdargs
     return _run_command(cmdargs, stdin)
 
 
@@ -833,6 +905,26 @@ def sign_message(msgdata: bytes, algo: str, keyinfo: Union[str, bytes],
     return pm.as_bytes()
 
 
+def set_bin_paths(config: Optional[dict]) -> None:
+    global GPGBIN, SSHKBIN
+    if GPGBIN is None:
+        gpgcfg = get_config_from_git(r'gpg\..*')
+        if config and config.get('gpg-bin'):
+            GPGBIN = config.get('gpg-bin')
+        elif gpgcfg.get('program'):
+            GPGBIN = gpgcfg.get('program')
+        else:
+            GPGBIN = 'gpg'
+    if SSHKBIN is None:
+        sshcfg = get_config_from_git(r'gpg\..*', section='ssh')
+        if config and config.get('ssh-keygen-bin'):
+            SSHKBIN = config.get('ssh-keygen-bin')
+        elif sshcfg.get('program'):
+            SSHKBIN = sshcfg.get('program')
+        else:
+            SSHKBIN = 'ssh-keygen'
+
+
 def cmd_sign(cmdargs, config: dict) -> None:
     # Do we have the signingkey defined?
     usercfg = get_config_from_git(r'user\..*')
@@ -887,6 +979,9 @@ def cmd_sign(cmdargs, config: dict) -> None:
     elif sk.startswith('openpgp:'):
         algo = 'openpgp'
         keydata = sk[8:]
+    elif sk.startswith('openssh:'):
+        algo = 'openssh'
+        keydata = sk[8:]
     else:
         logger.critical('E: Unknown key type: %s', sk)
         sys.exit(1)
@@ -919,6 +1014,7 @@ def validate_message(msgdata: bytes, sources: list, trim_body: bool = False) -> 
     pm = PatattMessage(msgdata)
     if not pm.signed:
         logger.debug('message is not signed')
+        attestations.append((RES_NOSIG, None, None, None, None, ['no signatures found']))
         return attestations
 
     # Find all identities for which we have public keys
@@ -934,6 +1030,8 @@ def validate_message(msgdata: bytes, sources: list, trim_body: bool = False) -> 
             algo = 'ed25519'
         elif a.startswith('openpgp'):
             algo = 'openpgp'
+        elif a.startswith('openssh'):
+            algo = 'openssh'
         else:
             errors.append('%s/%s Unknown algorigthm: %s' % (i, s, a))
             attestations.append((RES_ERROR, i, t, None, a, errors))
@@ -947,8 +1045,8 @@ def validate_message(msgdata: bytes, sources: list, trim_body: bool = False) -> 
             except KeyError:
                 pass
 
-        if not pkey and algo == 'ed25519':
-            errors.append('%s/%s no matching ed25519 key found' % (i, s))
+        if not pkey and algo in ('ed25519', 'openssh'):
+            errors.append('%s/%s no matching %s key found' % (i, s, algo))
             attestations.append((RES_NOKEY, i, t, None, algo, errors))
             continue
 
@@ -1019,6 +1117,10 @@ def cmd_validate(cmdargs, config: dict):
                         logger.info('       | key: %s', keysrc)
                     else:
                         logger.info('       | key: default GnuPG keyring')
+                elif result <= RES_NOSIG:
+                    logger.critical(' NOSIG | %s', fn)
+                    for error in errors:
+                        logger.critical('       | %s', error)
                 elif result <= RES_NOKEY:
                     logger.critical(' NOKEY | %s, %s', identity, fn)
                     for error in errors:
@@ -1195,6 +1297,7 @@ def command() -> None:
     if 'keyringsrc' not in config:
         config['keyringsrc'] = list()
     config['keyringsrc'] += ['ref:::.keys', 'ref:::.local-keys', 'ref::refs/meta/keyring:']
+    set_bin_paths(config)
     logger.debug('config: %s', config)
 
     if 'func' not in _args:
