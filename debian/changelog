@@ -1,3 +1,9 @@
+patatt (0.6.2-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Anuradha Weeraman <anuradha@debian.org>  Sun, 28 Aug 2022 21:52:11 +0530
+
 patatt (0.5.0-1) unstable; urgency=medium
 
   * New upstream release.
