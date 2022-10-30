@@ -5,7 +5,7 @@ Source: https://git.kernel.org/pub/scm/utils/patatt/patatt.git/
 
 Files: *
 Copyright: 2021, Konstantin Ryabitsev <mricon@kernel.org>
-	   2021, The Linux Foundation
+           2021, The Linux Foundation
 License: MIT-0
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
