@@ -1,6 +1,11 @@
 patatt (0.6.3-1) unstable; urgency=medium
 
   * New upstream release.
+  * Bumped up standards version.
+
+  [ Jelmer Vernooĳ ]
+  * debian/upstream/metadata: Remove obsolete field 'Name'.
+  * debian/copyright: use spaces rather than tabs to start continuation lines.
 
  -- Anuradha Weeraman <anuradha@debian.org>  Sat, 28 Jan 2023 17:22:48 +0530
 
