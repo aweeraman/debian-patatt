@@ -51,7 +51,7 @@ KEYCACHE = dict()
 CONFIGCACHE = dict()
 
 # My version
-__VERSION__ = '0.6.2'
+__VERSION__ = '0.6.3'
 MAX_SUPPORTED_FORMAT_VERSION = 1
 
 
@@ -451,7 +451,7 @@ class DevsigHeader:
         return good, valid, trusted, signkey, signtime
 
     @staticmethod
-    def splitter(longstr: bytes, limit: int = 78) -> bytes:
+    def splitter(longstr: bytes, limit: int = 75) -> bytes:
         splitstr = list()
         first = True
         while len(longstr) > limit:
