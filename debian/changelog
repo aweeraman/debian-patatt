@@ -2,6 +2,7 @@ patatt (0.6.3-2) unstable; urgency=medium
 
   * Fixed lintian warnings with the man page
   * Bumped up watch file to version 5
+  * Bumped up standards version to 4.7.2
 
  -- Anuradha Weeraman <anuradha@debian.org>  Sun, 02 Nov 2025 23:47:26 +0530
 
