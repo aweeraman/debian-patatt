@@ -24,3 +24,39 @@ Forwarded: yes
  by using DKIM\-like message headers. This approach is both effective and
  doesn\(aqt interfere with other code review tools the way inline or
  detached PGP signatures do. For a full overview of core concepts and
+@@ -48,7 +48,7 @@ configuration. Try running the following in any git repository:
+ .INDENT 3.5
+ .sp
+ .nf
+-.ft C
++.ft CR
+ git format\-patch \-1 \-\-stdout | patatt sign
+ .ft P
+ .fi
+@@ -61,7 +61,7 @@ If patatt is not finding your PGP key, try adding the following to your
+ .INDENT 3.5
+ .sp
+ .nf
+-.ft C
++.ft CR
+ [user]
+     signingkey = [yourkeyid]
+ .ft P
+@@ -81,7 +81,7 @@ run the following command in the repository you want enabled for signing:
+ .INDENT 3.5
+ .sp
+ .nf
+-.ft C
++.ft CR
+ $ patatt install\-hook
+ .ft P
+ .fi
+@@ -93,7 +93,7 @@ Or you can install it manually:
+ .INDENT 3.5
+ .sp
+ .nf
+-.ft C
++.ft CR
+ $ echo \(aqpatatt sign \-\-hook "${1}"\(aq >> .git/hooks/sendemail\-validate
+ $ chmod a+x .git/hooks/sendemail\-validate
+ .ft P
