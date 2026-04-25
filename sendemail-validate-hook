@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+if grep -q "^GIT: " "${1}"; then
+    # This is a cover letter template that will be modified by git-send-email.
+    # Refuse to sign it, as it's obviously going to be different at send time.
+    exit 0
+fi
+
 if which patatt>/dev/null 2>&1; then
     # We have it in path, so just execute it
     patatt sign --hook "${1}"
@@ -7,5 +13,5 @@ else
     REAL_SCRIPT=$(realpath -e ${BASH_SOURCE[0]})
     SCRIPT_TOP="${SCRIPT_TOP:-$(dirname ${REAL_SCRIPT})}"
     PATATT_TOP=$(realpath -e ${SCRIPT_TOP})
-    exec env PYTHONPATH="${PATATT_TOP}" python3 "${PATATT_TOP}/patatt/__init__.py" sign --hook "${1}"
+    exec env PYTHONPATH="${PATATT_TOP}" python3 "${PATATT_TOP}/src/patatt/__init__.py" sign --hook "${1}"
 fi
