@@ -3,8 +3,13 @@
 *.swp
 __pycache__
 .venv
+uv.lock
 .idea
 *.egg-info
 build
 dist
 outgoing
+.vscode
+*.log
+out
+docs/_build
