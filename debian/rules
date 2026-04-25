@@ -11,3 +11,9 @@ override_dh_install:
 	mkdir -p debian/patatt/usr/share/patatt/hooks
 	mv debian/python3-patatt/usr/share/man debian/patatt/usr/share/
 	mv debian/python3-patatt/usr/bin debian/patatt/usr/
+
+override_dh_auto_test:
+	# Run pytest from the source root so 'samples/' and '.keys/' are found
+	PYBUILD_SYSTEM=custom \
+	PYBUILD_TEST_ARGS="python{version} -m pytest {dir}/tests" \
+	dh_auto_test

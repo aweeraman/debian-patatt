@@ -5,7 +5,13 @@ Maintainer: Anuradha Weeraman <anuradha@debian.org>
 Build-Depends: debhelper-compat (= 13),
 	       dh-python,
 	       python3-setuptools,
-	       python3-all
+	       python3-all,
+	       pybuild-plugin-pyproject,
+	       python3-pytest,
+	       python3-nacl,
+	       git,
+	       gnupg,
+	       openssh-client
 Standards-Version: 4.7.2
 Homepage: https://git.kernel.org/pub/scm/utils/patatt/patatt.git/
 Vcs-Browser: https://salsa.debian.org/debian/patatt
