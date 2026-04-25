@@ -1,6 +1,8 @@
 patatt (0.7.1-1) unstable; urgency=medium
 
   * New upstream release.
+  * Fixes for new testing suite.
+  * Bumped up standards version to 4.7.4
 
  -- Anuradha Weeraman <anuradha@debian.org>  Sat, 25 Apr 2026 23:41:58 +0530
 
