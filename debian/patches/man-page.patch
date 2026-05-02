@@ -1,6 +1,6 @@
 Description: Man page tweaks
 Author: Anuradha Weeraman <anuradha@debian.org>
-Forwarded: yes
+Forwarded: not-needed
 
 --- a/man/patatt.5
 +++ b/man/patatt.5
