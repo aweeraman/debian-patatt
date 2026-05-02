@@ -1,3 +1,11 @@
+patatt (0.7.1-2) unstable; urgency=medium
+
+  * Add python3-cffi to Build-Depends and Depends to fix FTBFS with
+    python3-nacl 1.6.2-1, which dropped its cffi-backend dependency.
+    (Closes: #1135444)
+
+ -- Anuradha Weeraman <anuradha@debian.org>  Sat, 02 May 2026 23:57:27 +0530
+
 patatt (0.7.1-1) unstable; urgency=medium
 
   * New upstream release.
